@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:epsiProjetMobileClient="clr-namespace:epsi_projet_mobile_client"
+             xmlns:bluetooth="clr-namespace:Plugin.BLE.Abstractions.Contracts;assembly=Plugin.BLE"
+             x:Class="epsi_projet_mobile_client.MainPage"
+             x:DataType="epsiProjetMobileClient:MainPageViewModel">
+    <ContentPage.BindingContext>
+        <epsiProjetMobileClient:MainPageViewModel/>
+    </ContentPage.BindingContext>
+    
+    <ScrollView>
+        <VerticalStackLayout
+            Padding="30,0"
+            Spacing="25">
+            <Label Text="{Binding BluetoothStatus}"/>
+        
+            <ListView
+                ItemsSource="{Binding Devices}">
+                <ListView.ItemTemplate>
+                    <DataTemplate
+                        x:DataType="bluetooth:IDevice">
+                        <Label Text="{Binding Name}"/>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
