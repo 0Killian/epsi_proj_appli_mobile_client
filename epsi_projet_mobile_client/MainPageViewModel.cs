@@ -5,16 +5,20 @@ using Plugin.BLE;
 using Plugin.BLE.Abstractions;
 using Plugin.BLE.Abstractions.Contracts;
 using Plugin.BLE.Abstractions.EventArgs;
-using ScanMode = Plugin.BLE.Abstractions.Contracts.ScanMode;
 
 namespace epsi_projet_mobile_client;
 
 public class MainPageViewModel : ViewModel
 {
-    static readonly Guid ServiceUuid = new("0000ffe0-0000-1000-8000-00805f9b34fb");
+    private static readonly Guid ServiceUuid = new("0A806176-5C2B-4BDD-B288-F38A94D1F957");
     
     private readonly IBluetoothLE _bluetooth = CrossBluetoothLE.Current;
     private readonly IAdapter _adapter = CrossBluetoothLE.Current.Adapter;
+
+    public event EventHandler OnScanStarted = (_, _) => { };
+    public event EventHandler OnScanStopped = (_, _) => { };
+
+    private CancellationTokenSource? _cancellationTokenSource;
 
     private ObservableCollection<IDevice> _devices = [];
     public ObservableCollection<IDevice> Devices
@@ -47,24 +51,56 @@ public class MainPageViewModel : ViewModel
             if (!await CheckPermissions())
             {
                 await Toast.Make("Not all permissions were accepted. Application will now close.").Show();
-                Application.Current!.Quit();
+                
+                Debug.Assert(Application.Current != null, "Application.Current != null");
+                Application.Current.Quit();
             }
 
             _bluetooth.StateChanged += async (_, e) =>
             {
                 BluetoothStatus = e.NewState.ToString();
                 if (e.NewState != BluetoothState.On) return;
-                Devices.Clear();
-                await _adapter.StartScanningForDevicesAsync([ServiceUuid]);
+                await ScanDevices();
             };
 
             _adapter.DeviceDiscovered += OnDeviceDiscovered;
-
             _adapter.DeviceAdvertised += OnDeviceDiscovered;
-
-            _adapter.ScanMode = ScanMode.LowLatency;
-            await _adapter.StartScanningForDevicesAsync([ServiceUuid]);
+            
+            await ScanDevices();
         }).Wait();
+    }
+    
+    public async void ScanDevicesCommand(object? sender, EventArgs e)
+    {
+        await ScanDevices();
+    }
+
+    private async Task ScanDevices()
+    {
+        Devices.Clear();
+        
+        if (_cancellationTokenSource != null)
+        {
+            await _cancellationTokenSource.CancelAsync();
+        }
+        
+        _cancellationTokenSource = new CancellationTokenSource();
+        ScanFilterOptions filter = new()
+        {
+            ServiceUuids = [ServiceUuid]
+        };
+
+        OnScanStarted(this, EventArgs.Empty);
+        await _adapter.StartScanningForDevicesAsync(filter, cancellationToken: _cancellationTokenSource.Token);
+        OnScanStopped(this, EventArgs.Empty);
+    }
+
+    public async void CancelScan()
+    {
+        if (_cancellationTokenSource != null)
+        {
+            await _cancellationTokenSource.CancelAsync();
+        }
     }
 
     private void OnDeviceDiscovered(object? sender, DeviceEventArgs e)
@@ -82,7 +118,7 @@ public class MainPageViewModel : ViewModel
         {
             Devices.RemoveAt(Devices.IndexOf(Devices.First(x => x.Id == e.Device.Id)));
         }
-        catch (InvalidOperationException ex)
+        catch (InvalidOperationException)
         {
         }
 

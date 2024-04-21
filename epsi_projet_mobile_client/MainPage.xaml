@@ -16,7 +16,9 @@
             <Label Text="{Binding BluetoothStatus}"/>
         
             <ListView
-                ItemsSource="{Binding Devices}">
+                x:Name="DevicesList"
+                ItemsSource="{Binding Devices}"
+                ItemSelected="DevicesList_OnItemSelected">
                 <ListView.ItemTemplate>
                     <DataTemplate
                         x:DataType="bluetooth:IDevice">
@@ -24,6 +26,10 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+            <Button
+                x:Name="ScanButton"
+                Text="Scan"
+                Clicked="ScanDevicesCommand"/>
         </VerticalStackLayout>
     </ScrollView>
 
